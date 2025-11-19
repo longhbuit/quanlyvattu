@@ -1,0 +1,61 @@
+﻿version: "3.9"
+
+services:
+  # =============================
+  # SERVER CTY
+  # =============================
+  mssql-cty:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-cty
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "14331:1433"
+    volumes:
+      - cty_data:/var/opt/mssql
+    networks:
+      - qlvt-net
+
+  # =============================
+  # SERVER CN1
+  # =============================
+  mssql-cn1:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-cn1
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "14332:1433"
+    volumes:
+      - cn1_data:/var/opt/mssql
+    networks:
+      - qlvt-net
+
+  # =============================
+  # SERVER CN2
+  # =============================
+  mssql-cn2:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-cn2
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "14333:1433"
+    volumes:
+      - cn2_data:/var/opt/mssql
+    networks:
+      - qlvt-net
+volumes:
+  cty_data:
+  cn1_data:
+  cn2_data:
+
+networks:
+  qlvt-net:
+    driver: bridge

@@ -1,0 +1,76 @@
+# =========================
+# .NET / C# Windows Forms
+# =========================
+
+# Build output
+bin/
+obj/
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+.nuget/
+project.lock.json
+package-lock.json
+
+# IDE / tooling
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.userprefs
+*.pidb
+*.psess
+*.vsp
+*.vspx
+
+# Rider / ReSharper caches
+_ReSharper.Caches/
+*.DotSettings.user
+
+# Logs / diagnostics
+*.log
+*.etl
+TestResult*/
+coverage/
+*.coverage
+*.coveragexml
+
+# Generated files
+**/GeneratedMSBuildEditorConfig.editorconfig
+**/*.g.cs
+**/GlobalUsings.g.cs
+
+# OS / misc
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Security / secrets (adjust as needed)
+*.pfx
+*.snk
+
+# Local config overrides
+*.csproj.user
+*.pubxml
+*.pubxml.user
+launchSettings.json
+
+# Docker / compose artifacts
+**/docker/*.sql
+# (If you want SQL migration scripts tracked, remove the above line.)
+
+# JetBrains HTTP client scratch files
+*.http
+
+# JSON user data produced at runtime (users.json from UserStore)
+QuanLyVatTu/ bin/ Debug/ net10.0-windows/ users.json
+users.json
+
+# Backup / temp
+*.bak
+*.tmp
+~$*
+
