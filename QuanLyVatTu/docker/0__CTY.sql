@@ -37,8 +37,6 @@ GO
 
 CREATE TABLE TaiKhoan (
                           LoginName VARCHAR(50) PRIMARY KEY,
-                          MANV INT NOT NULL, -- Giả sử bạn đã có bảng NhanVien, nếu chưa thì bỏ FK
-    -- FOREIGN KEY (MANV) REFERENCES NhanVien(MANV) 
 )
 GO
 
@@ -86,16 +84,19 @@ GO
 GRANT EXECUTE ON SP_TaoLogin_Global TO PUBLIC
 GO
 
+IF OBJECT_ID('SP_TaoTaiKhoan_CongTy', 'P') IS NOT NULL
+    DROP PROC SP_TaoTaiKhoan_CongTy
+GO
+
 CREATE PROCEDURE SP_TaoTaiKhoan_CongTy
-    @LoginName VARCHAR(50), @Password VARCHAR(50),
-    @MANV INT, @Role VARCHAR(20)
+    @LoginName VARCHAR(50), @Password VARCHAR(50), @Role VARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON; -- Bắt buộc cho giao dịch phân tán
+    -- SET XACT_ABORT ON; -- Bắt buộc cho giao dịch phân tán
 
     -- 1. KIỂM TRA QUYỀN (Chỉ CongTy_Role được chạy)
-    IF IS_MEMBER('CongTy_Role') = 0
+    IF IS_MEMBER('CongTy_Role') = 0 AND IS_SRVROLEMEMBER('sysadmin') = 0
         BEGIN
             RAISERROR(N'Chỉ nhóm Công Ty mới được dùng chức năng này!', 16, 1)
             RETURN
@@ -107,30 +108,28 @@ BEGIN
         END
 
     -- 2. GIAO DỊCH PHÂN TÁN
-    BEGIN DISTRIBUTED TRANSACTION
+    -- BEGIN DISTRIBUTED TRANSACTION
         BEGIN TRY
             -- A. Tạo tại CTY (Local)
-            IF EXISTS (SELECT name FROM sys.server_principals WHERE name = @LoginName)
+            IF NOT EXISTS (SELECT name FROM sys.server_principals WHERE name = @LoginName)
                 BEGIN
-                    RAISERROR(N'Login đã tồn tại!', 16, 1); ROLLBACK; RETURN;
+                    RAISERROR(N'Login không tồn tại!', 16, 1); ROLLBACK; RETURN;
                 END
 
-            EXEC sp_addlogin @LoginName, @Password, 'CTY'
-            EXEC sp_grantdbaccess @LoginName, @LoginName
             EXEC sp_addrolemember @Role, @LoginName
-            INSERT INTO TaiKhoan(LoginName, MANV) VALUES (@LoginName, @MANV)
+            INSERT INTO TaiKhoan(LoginName) VALUES (@LoginName)
 
             -- B. Gọi sang Chi Nhánh 1 (Remote)
             DECLARE @Ret1 INT
-            EXEC @Ret1 = [LINK_CN1].CTY.dbo.SP_TaoTaiKhoan_Receiver @LoginName, @Password, @MANV, @Role
+            EXEC @Ret1 = [LINK_CN1].CN1.dbo.SP_TaoTaiKhoan_Receiver @LoginName, @Password, @Role
             IF @Ret1 <> 0 BEGIN RAISERROR(N'Lỗi tạo tại CN1', 16, 1); ROLLBACK; RETURN; END
 
             -- C. Gọi sang Chi Nhánh 2 (Remote)
             DECLARE @Ret2 INT
-            EXEC @Ret2 = [LINK_CN2].CTY.dbo.SP_TaoTaiKhoan_Receiver @LoginName, @Password, @MANV, @Role
+            EXEC @Ret2 = [LINK_CN2].CN2.dbo.SP_TaoTaiKhoan_Receiver @LoginName, @Password, @Role;
             IF @Ret2 <> 0 BEGIN RAISERROR(N'Lỗi tạo tại CN2', 16, 1); ROLLBACK; RETURN; END
 
-            COMMIT TRANSACTION
+            -- COMMIT TRANSACTION
             PRINT N'Đã tạo tài khoản Công Ty trên toàn hệ thống.'
         END TRY
         BEGIN CATCH
@@ -140,28 +139,6 @@ BEGIN
         END CATCH
 END
 GO
--------------------------------------------
--- PHẦN 4: THIẾT LẬP LINKED SERVER ĐẾN CHI NHÁNH 1
--------------------------------------------
-IF EXISTS (SELECT name FROM sys.servers WHERE name = 'LINK_CN1')
-    EXEC sp_dropserver 'LINK_CN1', 'droplogins';
 
--- 1. Tạo Linked Server
-EXEC sp_addlinkedserver
-     @server = 'LINK_CN1',
-     @srvproduct = 'SQL Server',
-     @provider = 'SQLNCLI',
-     @datasrc = 'TEN_SERVER_CN1'; -- <--- ĐIỀN TÊN SERVER CN1 VÀO ĐÂY
 
--- 2. Cấu hình đăng nhập (Dùng user sa để kết nối)
-EXEC sp_addlinkedsrvlogin
-     @rmtsrvname = 'LINK_CN1',
-     @useself = 'False',
-     @locallogin = NULL,
-     @rmtuser = 'sa',
-     @rmtpassword = 'MAT_KHAU_SA'; -- <--- ĐIỀN PASS SA CỦA SERVER CN1
 
--- 3. Bật RPC OUT (Quan trọng để gọi SP từ xa)
-EXEC sp_serveroption 'LINK_CN1', 'rpc out', 'true';
-EXEC sp_serveroption 'LINK_CN1', 'rpc', 'true';
-GO

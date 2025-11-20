@@ -57,90 +57,140 @@ GO
 /* =======================================================
    PHẦN 3: STORED PROCEDURE TẠO TÀI KHOẢN (Logic Chính)
    ======================================================= */
-IF OBJECT_ID('SP_TaoTaiKhoan_Receiver', 'P') IS NOT NULL
-    DROP PROC SP_TaoTaiKhoan_Receiver
+IF OBJECT_ID('dbo.SP_TaoTaiKhoan_Receiver', 'P') IS NOT NULL
+    DROP PROC dbo.SP_TaoTaiKhoan_Receiver
 GO
-
-CREATE PROCEDURE SP_TaoTaiKhoan_Receiver
+CREATE PROCEDURE dbo.SP_TaoTaiKhoan_Receiver
     @LoginName VARCHAR(50),
     @Password VARCHAR(50),
-    @MANV INT,
     @Role VARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
-        -- Tạo Login nếu chưa có (Đồng bộ pass với CTY)
+        -- Tạo Login nếu chưa có (Đồng bộ pass với Database CN1)
         IF NOT EXISTS (SELECT name FROM sys.server_principals WHERE name = @LoginName)
-            EXEC sp_addlogin @LoginName, @Password, 'CTY'
+            EXEC sp_addlogin @LoginName, @Password, 'CN1';
 
         -- Tạo User và Gán quyền
-        EXEC sp_grantdbaccess @LoginName, @LoginName
-        EXEC sp_addrolemember @Role, @LoginName
+        EXEC sp_grantdbaccess @LoginName, @LoginName;
+        EXEC sp_addrolemember @Role, @LoginName;
 
         -- Lưu vào bảng mapping (Bảng này phải có ở CN)
         -- INSERT INTO TaiKhoan(LoginName, MANV) VALUES (@LoginName, @MANV) 
-        RETURN 0
+        RETURN 0;
     END TRY
     BEGIN CATCH
-        RETURN 1
+        RETURN 1;
     END CATCH
 END
 GO
-GRANT EXECUTE ON SP_TaoTaiKhoan_Receiver TO PUBLIC
+GRANT EXECUTE ON dbo.SP_TaoTaiKhoan_Receiver TO PUBLIC
 GO
-
-CREATE PROCEDURE SP_TaoTaiKhoan_ChiNhanh
-    @LoginName VARCHAR(50), @Password VARCHAR(50),
-    @MANV INT, @Role VARCHAR(20)
+IF OBJECT_ID('dbo.SP_TaoTaiKhoan_ChiNhanh', 'P') IS NOT NULL
+    DROP PROC dbo.SP_TaoTaiKhoan_ChiNhanh
+GO
+CREATE PROCEDURE dbo.SP_TaoTaiKhoan_ChiNhanh
+    @LoginName VARCHAR(50),
+    @Password VARCHAR(50),
+    @Role VARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    -- 1. KIỂM TRA QUYỀN
-    IF IS_MEMBER('ChiNhanh_Role') = 0
+    -- 1. KIỂM TRA QUYỀN (Giữ nguyên)
+    IF IS_MEMBER('ChiNhanh_Role') = 0 AND IS_SRVROLEMEMBER('sysadmin') = 0
         BEGIN
-            RAISERROR(N'Bạn không có quyền thực hiện chức năng này!', 16, 1)
-            RETURN
+            RAISERROR(N'Bạn không có quyền thực hiện chức năng này!', 16, 1);
+            RETURN;
         END
 
-    -- Chặn việc tạo User CongTy ở chi nhánh
     IF @Role = 'CongTy_Role'
         BEGIN
-            RAISERROR(N'Chi nhánh không được tạo tài khoản Công Ty!', 16, 1)
-            RETURN
+            RAISERROR(N'Chi nhánh không được tạo tài khoản Công Ty!', 16, 1);
+            RETURN;
         END
 
-    -- 2. GIAO DỊCH PHÂN TÁN
-    BEGIN DISTRIBUTED TRANSACTION
+    -- KHAI BÁO BIẾN KIỂM SOÁT LỖI
+    DECLARE @Ret INT;
+
+    ---------------------------------------------------------
+    -- BƯỚC A: GỌI LÊN CTY (NẰM NGOÀI TRANSACTION)
+    ---------------------------------------------------------
+    TRY_REMOTE:
+    BEGIN TRY
+        -- Gọi Link Server: Bên kia tự kiểm tra trùng và tạo Login
+        EXEC @Ret = [LINK_CTY].CTY.dbo.SP_TaoLogin_Global @LoginName, @Password;
+    END TRY
+    BEGIN CATCH
+        RAISERROR(N'Lỗi khi kết nối hoặc tạo Login tại Server CTY', 16, 1);
+        RETURN; -- Dừng ngay, chưa làm gì ở local nên không cần dọn dẹp
+    END CATCH
+
+    IF @Ret <> 0
+        BEGIN
+            RAISERROR(N'Tên đăng nhập bị trùng tại CTY', 16, 1);
+            RETURN;
+        END
+
+    ---------------------------------------------------------
+    -- BƯỚC B: TẠO LOGIN TẠI CHI NHÁNH (NẰM NGOÀI TRANSACTION)
+    ---------------------------------------------------------
+    BEGIN TRY
+        -- Dùng CREATE LOGIN thay cho sp_addlogin (đã cũ)
+        DECLARE @SQL NVARCHAR(MAX);
+        SET @SQL = 'CREATE LOGIN [' + @LoginName + '] WITH PASSWORD = ''' + @Password + '''';
+        EXEC (@SQL);
+    END TRY
+    BEGIN CATCH
+        -- NẾU LỖI: Phải "Bù trừ" bằng cách xóa Login vừa tạo bên CTY
+        DECLARE @ErrorMsg NVARCHAR(MAX) = ERROR_MESSAGE();
+        -- Gọi hàm xóa bên CTY (Bạn cần viết thêm SP này bên CTY)
+        -- EXEC [LINK_CTY].CTY.dbo.SP_XoaLogin_Global @LoginName; 
+        RAISERROR(N'Lỗi tạo Login tại Chi Nhánh: %s. Đã hủy bên CTY.', 16, 1, @ErrorMsg);
+        RETURN;
+    END CATCH
+
+    ---------------------------------------------------------
+    -- BƯỚC C: TẠO USER DB & GHI DỮ LIỆU (NẰM TRONG TRANSACTION)
+    ---------------------------------------------------------
+    -- Chỉ bắt đầu Transaction cho các thao tác dữ liệu trong DB hiện tại
+    BEGIN TRANSACTION
         BEGIN TRY
-            -- A. Gọi lên CTY để tạo Login Global (Check trùng luôn)
-            DECLARE @Ret INT
-            -- [LINK_CTY] là Link Server trỏ về Cty
-            EXEC @Ret = [LINK_CTY].CTY.dbo.SP_TaoLogin_Global @LoginName, @Password
+            -- 1. Tạo User cho Database hiện tại
+            SET @SQL = 'CREATE USER [' + @LoginName + '] FOR LOGIN [' + @LoginName + ']';
+            EXEC (@SQL);
 
-            IF @Ret <> 0
-                BEGIN
-                    RAISERROR(N'Tên đăng nhập bị trùng hoặc lỗi tại Server CTY', 16, 1)
-                    ROLLBACK TRANSACTION
-                    RETURN
-                END
+            -- 2. Gán quyền (Role)
+            -- sp_addrolemember vẫn dùng được, hoặc dùng ALTER ROLE
+            EXEC sp_addrolemember @Role, @LoginName;
 
-            -- B. Tạo tại Chi Nhánh (Local)
-            -- Tạo lại Login ở Local (vì bước A chỉ tạo ở Cty)
-            EXEC sp_addlogin @LoginName, @Password, 'CTY'
-            EXEC sp_grantdbaccess @LoginName, @LoginName
-            EXEC sp_addrolemember @Role, @LoginName -- Role: ChiNhanh_Role hoặc User_Role
-            INSERT INTO TaiKhoan(LoginName, MANV) VALUES (@LoginName, @MANV)
+            -- 3. Ghi vào bảng TaiKhoan (Dữ liệu nghiệp vụ)
+            INSERT INTO TaiKhoan(LoginName) VALUES (@LoginName);
 
-            COMMIT TRANSACTION
-            PRINT N'Tạo tài khoản thành công!'
+            COMMIT TRANSACTION;
+            PRINT N'Tạo tài khoản thành công hoàn toàn.';
         END TRY
         BEGIN CATCH
-            IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
+            -- Nếu lỗi tại bước này
+            ROLLBACK TRANSACTION;
+
+            -- CLEANUP (BÙ TRỪ): Xóa Login Local và Remote vì việc tạo User thất bại
+            -- 1. Xóa Login Local
+            SET @SQL = 'DROP LOGIN [' + @LoginName + ']';
+            EXEC (@SQL);
+
+            -- 2. Xóa Login Remote (Gợi ý nên có SP này)
+            -- EXEC [LINK_CTY].CTY.dbo.SP_XoaLogin_Global @LoginName;
+
             DECLARE @Err NVARCHAR(MAX) = ERROR_MESSAGE();
-            RAISERROR(@Err, 16, 1);
+            RAISERROR(N'Lỗi khi thiết lập User/Data: %s. Đã hoàn tác toàn bộ.', 16, 1, @Err);
         END CATCH
 END
+GO
+
+GRANT EXECUTE ON dbo.SP_TaoTaiKhoan_ChiNhanh TO ChiNhanh_Role;
+DENY EXECUTE ON dbo.SP_TaoTaiKhoan_ChiNhanh TO CongTy_Role;
+DENY EXECUTE ON dbo.SP_TaoTaiKhoan_ChiNhanh TO User_Role;
 GO

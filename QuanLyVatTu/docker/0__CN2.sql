@@ -57,14 +57,12 @@ GO
 /* =======================================================
    PHẦN 3: STORED PROCEDURE TẠO TÀI KHOẢN (Logic Chính)
    ======================================================= */
-IF OBJECT_ID('SP_TaoTaiKhoan_Receiver', 'P') IS NOT NULL
-    DROP PROC SP_TaoTaiKhoan_Receiver
+IF OBJECT_ID('dbo.SP_TaoTaiKhoan_Receiver', 'P') IS NOT NULL
+    DROP PROC dbo.SP_TaoTaiKhoan_Receiver
 GO
-
-CREATE PROCEDURE SP_TaoTaiKhoan_Receiver
+CREATE PROCEDURE dbo.SP_TaoTaiKhoan_Receiver
     @LoginName VARCHAR(50),
     @Password VARCHAR(50),
-    @MANV INT,
     @Role VARCHAR(20)
 AS
 BEGIN
@@ -72,70 +70,70 @@ BEGIN
     BEGIN TRY
         -- Tạo Login nếu chưa có (Đồng bộ pass với CTY)
         IF NOT EXISTS (SELECT name FROM sys.server_principals WHERE name = @LoginName)
-            EXEC sp_addlogin @LoginName, @Password, 'CTY'
+            EXEC sp_addlogin @LoginName, @Password, 'CN2';
 
         -- Tạo User và Gán quyền
-        EXEC sp_grantdbaccess @LoginName, @LoginName
-        EXEC sp_addrolemember @Role, @LoginName
+        EXEC sp_grantdbaccess @LoginName, @LoginName;
+        EXEC sp_addrolemember @Role, @LoginName;
 
         -- Lưu vào bảng mapping (Bảng này phải có ở CN)
         -- INSERT INTO TaiKhoan(LoginName, MANV) VALUES (@LoginName, @MANV) 
-        RETURN 0
+        RETURN 0;
     END TRY
     BEGIN CATCH
-        RETURN 1
+        RETURN 1;
     END CATCH
 END
 GO
-GRANT EXECUTE ON SP_TaoTaiKhoan_Receiver TO PUBLIC
+GRANT EXECUTE ON dbo.SP_TaoTaiKhoan_Receiver TO PUBLIC
 GO
-
-CREATE PROCEDURE SP_TaoTaiKhoan_ChiNhanh
-    @LoginName VARCHAR(50), @Password VARCHAR(50),
-    @MANV INT, @Role VARCHAR(20)
+IF OBJECT_ID('dbo.SP_TaoTaiKhoan_ChiNhanh', 'P') IS NOT NULL
+    DROP PROC dbo.SP_TaoTaiKhoan_ChiNhanh
+GO
+CREATE PROCEDURE dbo.SP_TaoTaiKhoan_ChiNhanh
+    @LoginName VARCHAR(50), @Password VARCHAR(50), @Role VARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
     -- 1. KIỂM TRA QUYỀN
-    IF IS_MEMBER('ChiNhanh_Role') = 0
+    IF IS_MEMBER('ChiNhanh_Role') = 0 AND IS_SRVROLEMEMBER('sysadmin') = 0
         BEGIN
-            RAISERROR(N'Bạn không có quyền thực hiện chức năng này!', 16, 1)
-            RETURN
+            RAISERROR(N'Bạn không có quyền thực hiện chức năng này!', 16, 1);
+            RETURN;
         END
 
     -- Chặn việc tạo User CongTy ở chi nhánh
     IF @Role = 'CongTy_Role'
         BEGIN
-            RAISERROR(N'Chi nhánh không được tạo tài khoản Công Ty!', 16, 1)
-            RETURN
+            RAISERROR(N'Chi nhánh không được tạo tài khoản Công Ty!', 16, 1);
+            RETURN;
         END
 
     -- 2. GIAO DỊCH PHÂN TÁN
     BEGIN DISTRIBUTED TRANSACTION
         BEGIN TRY
             -- A. Gọi lên CTY để tạo Login Global (Check trùng luôn)
-            DECLARE @Ret INT
+            DECLARE @Ret INT;
             -- [LINK_CTY] là Link Server trỏ về Cty
-            EXEC @Ret = [LINK_CTY].CTY.dbo.SP_TaoLogin_Global @LoginName, @Password
+            EXEC @Ret = [LINK_CTY].CTY.dbo.SP_TaoLogin_Global @LoginName, @Password;
 
             IF @Ret <> 0
                 BEGIN
-                    RAISERROR(N'Tên đăng nhập bị trùng hoặc lỗi tại Server CTY', 16, 1)
-                    ROLLBACK TRANSACTION
-                    RETURN
+                    RAISERROR(N'Tên đăng nhập bị trùng hoặc lỗi tại Server CTY', 16, 1);
+                    ROLLBACK TRANSACTION; RETURN;
                 END
 
             -- B. Tạo tại Chi Nhánh (Local)
             -- Tạo lại Login ở Local (vì bước A chỉ tạo ở Cty)
-            EXEC sp_addlogin @LoginName, @Password, 'CTY'
-            EXEC sp_grantdbaccess @LoginName, @LoginName
-            EXEC sp_addrolemember @Role, @LoginName -- Role: ChiNhanh_Role hoặc User_Role
-            INSERT INTO TaiKhoan(LoginName, MANV) VALUES (@LoginName, @MANV)
+            EXEC sp_addlogin @LoginName, @Password, 'CN2';
+            EXEC sp_grantdbaccess @LoginName, @LoginName;
+            EXEC sp_addrolemember @Role, @LoginName; -- Role: ChiNhanh_Role hoặc User_Role
+            INSERT INTO TaiKhoan(LoginName, MANV) VALUES (@LoginName);
 
-            COMMIT TRANSACTION
-            PRINT N'Tạo tài khoản thành công!'
+            COMMIT TRANSACTION;
+            PRINT N'Tạo tài khoản thành công tại CN2.';
         END TRY
         BEGIN CATCH
             IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;
@@ -143,4 +141,8 @@ BEGIN
             RAISERROR(@Err, 16, 1);
         END CATCH
 END
+GO
+GRANT EXECUTE ON dbo.SP_TaoTaiKhoan_ChiNhanh TO ChiNhanh_Role;
+DENY EXECUTE ON dbo.SP_TaoTaiKhoan_ChiNhanh TO CongTy_Role;
+DENY EXECUTE ON dbo.SP_TaoTaiKhoan_ChiNhanh TO User_Role;
 GO
