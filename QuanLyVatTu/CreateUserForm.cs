@@ -2,7 +2,6 @@ namespace QuanLyVatTu;
 
 using System;
 using System.Windows.Forms;
-using Microsoft.Data.SqlClient;
 
 public class CreateUserForm : Form
 {
@@ -80,80 +79,19 @@ public class CreateUserForm : Form
 
         try
         {
-            var csb = new SqlConnectionStringBuilder(AppSession.ConnectionString);
-            var initialDb = (csb.InitialCatalog ?? string.Empty).Trim();
-            using var conn = new SqlConnection(AppSession.ConnectionString);
-            conn.Open();
-
-            // Role restrictions
-            if (scope == "Chi Nhánh" && role == "CongTy_Role")
+            // Delegate creation to service
+            var service = new UserCreationService(AppSession.ConnectionString);
+            var result = service.CreateUser(loginName, pass, scope!, role!);
+            if (result.Success)
             {
-                MessageBox.Show("Chi nhánh không được tạo tài khoản Công Ty.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                MessageBox.Show(result.Message, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                DialogResult = DialogResult.OK;
+                Close();
             }
-
-            if (scope == "Công Ty" && !string.Equals(initialDb, "CTY", StringComparison.OrdinalIgnoreCase))
+            else
             {
-                MessageBox.Show("Kết nối hiện tại không phải database CTY.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                MessageBox.Show(result.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            if (scope == "Chi Nhánh" && string.Equals(initialDb, "CTY", StringComparison.OrdinalIgnoreCase))
-            {
-                MessageBox.Show("Đang ở CTY, chọn phạm vi Công Ty hoặc đổi kết nối sang CN.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            // Check if login exists (server-wide)
-            using (var checkCmd = new SqlCommand("SELECT COUNT(*) FROM sys.server_principals WHERE name = @name", conn))
-            {
-                checkCmd.Parameters.AddWithValue("@name", loginName);
-                var exists = (int)checkCmd.ExecuteScalar()! > 0;
-                if (exists)
-                {
-                    MessageBox.Show("Login đã tồn tại.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-            }
-
-            if (scope == "Công Ty")
-            {
-                // 1. Tạo login toàn cục
-                using (var spGlobal = new SqlCommand("dbo.SP_TaoLogin_Global", conn))
-                {
-                    spGlobal.CommandType = System.Data.CommandType.StoredProcedure;
-                    spGlobal.Parameters.AddWithValue("@LoginName", loginName);
-                    spGlobal.Parameters.AddWithValue("@Password", pass);
-                    var ret = spGlobal.ExecuteScalar(); // assume returns 0 or maybe uses RETURN; we ignore scalar if not present
-                }
-                // 2. Tạo user + gán role trong CTY
-                using (var spCompany = new SqlCommand("dbo.SP_TaoTaiKhoan_CongTy", conn))
-                {
-                    spCompany.CommandType = System.Data.CommandType.StoredProcedure;
-                    spCompany.Parameters.AddWithValue("@LoginName", loginName);
-                    spCompany.Parameters.AddWithValue("@Password", pass);
-                    spCompany.Parameters.AddWithValue("@Role", role);
-                    spCompany.ExecuteNonQuery();
-                }
-            }
-            else // Chi Nhánh
-            {
-                using (var spBranch = new SqlCommand("dbo.SP_TaoTaiKhoan_ChiNhanh", conn))
-                {
-                    spBranch.CommandType = System.Data.CommandType.StoredProcedure;
-                    spBranch.Parameters.AddWithValue("@LoginName", loginName);
-                    spBranch.Parameters.AddWithValue("@Password", pass);
-                    spBranch.Parameters.AddWithValue("@Role", role);
-                    spBranch.ExecuteNonQuery();
-                }
-            }
-
-            MessageBox.Show("Tạo tài khoản thành công qua Stored Procedure.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            DialogResult = DialogResult.OK;
-            Close();
-        }
-        catch (SqlException sqlEx)
-        {
-            MessageBox.Show("SQL lỗi: " + sqlEx.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         catch (Exception ex)
         {

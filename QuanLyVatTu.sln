@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuanLyVatTu", "QuanLyVatTu\QuanLyVatTu.csproj", "{ABD9F150-60D8-40FF-A74B-9E1A5FF57352}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuanLyVatTu.IntegrationTests", "QuanLyVatTu.IntegrationTests\QuanLyVatTu.IntegrationTests.csproj", "{37002BBB-B7CE-4835-87D9-EC25AE856576}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{ABD9F150-60D8-40FF-A74B-9E1A5FF57352}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ABD9F150-60D8-40FF-A74B-9E1A5FF57352}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ABD9F150-60D8-40FF-A74B-9E1A5FF57352}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37002BBB-B7CE-4835-87D9-EC25AE856576}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37002BBB-B7CE-4835-87D9-EC25AE856576}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37002BBB-B7CE-4835-87D9-EC25AE856576}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37002BBB-B7CE-4835-87D9-EC25AE856576}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

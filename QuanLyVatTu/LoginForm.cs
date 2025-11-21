@@ -123,14 +123,22 @@ public class LoginForm : Form
 
         try
         {
-            using var conn = new SqlConnection(builder.ConnectionString);
-            conn.Open();
-            ConnectionString = builder.ConnectionString;
-            AppSession.Branch = SelectedBranch;
-            AppSession.ConnectionString = ConnectionString;
-            AppSession.SqlUsername = user;
-            DialogResult = DialogResult.OK;
-            Close();
+            // Delegate connection validation to LoginService
+            var service = new LoginService();
+            var result = service.Login(user, pass, SelectedBranch);
+            if (result.Success && result.ConnectionString is not null)
+            {
+                ConnectionString = result.ConnectionString;
+                AppSession.Branch = SelectedBranch;
+                AppSession.ConnectionString = ConnectionString;
+                AppSession.SqlUsername = user;
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+            else
+            {
+                MessageBox.Show(result.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         catch (Exception ex)
         {

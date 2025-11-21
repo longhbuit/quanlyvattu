@@ -54,6 +54,11 @@ EXEC sp_addrole 'ChiNhanh_Role' -- Quyền: Toàn quyền tại chi nhánh
 EXEC sp_addrole 'User_Role'     -- Quyền: Chỉ cập nhật dữ liệu, không tạo user
 GO
 
+GRANT ALTER ANY USER TO ChiNhanh_Role;
+GRANT ALTER ANY ROLE TO ChiNhanh_Role;
+GRANT ALTER ON ROLE::ChiNhanh_Role TO ChiNhanh_Role;
+GO
+
 /* =======================================================
    PHẦN 3: STORED PROCEDURE TẠO TÀI KHOẢN (Logic Chính)
    ======================================================= */
@@ -87,9 +92,11 @@ END
 GO
 GRANT EXECUTE ON dbo.SP_TaoTaiKhoan_Receiver TO PUBLIC
 GO
+
 IF OBJECT_ID('dbo.SP_TaoTaiKhoan_ChiNhanh', 'P') IS NOT NULL
     DROP PROC dbo.SP_TaoTaiKhoan_ChiNhanh
 GO
+
 CREATE PROCEDURE dbo.SP_TaoTaiKhoan_ChiNhanh
     @LoginName VARCHAR(50),
     @Password VARCHAR(50),
@@ -99,98 +106,110 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    -- 1. KIỂM TRA QUYỀN (Giữ nguyên)
+    DECLARE @Step NVARCHAR(100) = N'INIT';
+
+    ---------------------------------------------------------
+    -- 1. KIỂM TRA QUYỀN
+    ---------------------------------------------------------
+    SET @Step = N'CHECK PERMISSION';
     IF IS_MEMBER('ChiNhanh_Role') = 0 AND IS_SRVROLEMEMBER('sysadmin') = 0
         BEGIN
-            RAISERROR(N'Bạn không có quyền thực hiện chức năng này!', 16, 1);
+            RAISERROR(N'[STEP: %s] Bạn không có quyền thực hiện chức năng này!', 16, 1, @Step);
             RETURN;
         END
 
     IF @Role = 'CongTy_Role'
         BEGIN
-            RAISERROR(N'Chi nhánh không được tạo tài khoản Công Ty!', 16, 1);
+            RAISERROR(N'[STEP: %s] Chi nhánh không được tạo tài khoản Công Ty!', 16, 1, @Step);
             RETURN;
         END
 
-    -- KHAI BÁO BIẾN KIỂM SOÁT LỖI
     DECLARE @Ret INT;
+    DECLARE @SQL NVARCHAR(MAX);
+    DECLARE @Err NVARCHAR(MAX);
 
     ---------------------------------------------------------
-    -- BƯỚC A: GỌI LÊN CTY (NẰM NGOÀI TRANSACTION)
+    -- BƯỚC A: GỌI LÊN CTY
     ---------------------------------------------------------
-    TRY_REMOTE:
+    SET @Step = N'CALL REMOTE SP_TaoLogin_Global';
+
     BEGIN TRY
-        -- Gọi Link Server: Bên kia tự kiểm tra trùng và tạo Login
         EXEC @Ret = [LINK_CTY].CTY.dbo.SP_TaoLogin_Global @LoginName, @Password;
     END TRY
     BEGIN CATCH
-        RAISERROR(N'Lỗi khi kết nối hoặc tạo Login tại Server CTY', 16, 1);
-        RETURN; -- Dừng ngay, chưa làm gì ở local nên không cần dọn dẹp
+        SET @Err = ERROR_MESSAGE();
+        RAISERROR(N'[STEP: %s] Lỗi khi kết nối hoặc tạo Login tại Server CTY: %s',
+            16, 1, @Step, @Err);
+        RETURN;
     END CATCH
 
     IF @Ret <> 0
         BEGIN
-            RAISERROR(N'Tên đăng nhập bị trùng tại CTY', 16, 1);
+            RAISERROR(N'[STEP: %s] Tên đăng nhập bị trùng tại CTY', 16, 1, @Step);
             RETURN;
         END
 
+
     ---------------------------------------------------------
-    -- BƯỚC B: TẠO LOGIN TẠI CHI NHÁNH (NẰM NGOÀI TRANSACTION)
+    -- BƯỚC B: TẠO LOGIN LOCAL
     ---------------------------------------------------------
+    SET @Step = N'CREATE LOCAL LOGIN';
+
     BEGIN TRY
-        -- Dùng CREATE LOGIN thay cho sp_addlogin (đã cũ)
-        DECLARE @SQL NVARCHAR(MAX);
         SET @SQL = 'CREATE LOGIN [' + @LoginName + '] WITH PASSWORD = ''' + @Password + '''';
         EXEC (@SQL);
     END TRY
     BEGIN CATCH
-        -- NẾU LỖI: Phải "Bù trừ" bằng cách xóa Login vừa tạo bên CTY
-        DECLARE @ErrorMsg NVARCHAR(MAX) = ERROR_MESSAGE();
-        -- Gọi hàm xóa bên CTY (Bạn cần viết thêm SP này bên CTY)
-        -- EXEC [LINK_CTY].CTY.dbo.SP_XoaLogin_Global @LoginName; 
-        RAISERROR(N'Lỗi tạo Login tại Chi Nhánh: %s. Đã hủy bên CTY.', 16, 1, @ErrorMsg);
+        SET @Err = ERROR_MESSAGE();
+        RAISERROR(N'[STEP: %s] Lỗi tạo Login tại Chi Nhánh: %s',
+            16, 1, @Step, @Err);
         RETURN;
     END CATCH
 
+
     ---------------------------------------------------------
-    -- BƯỚC C: TẠO USER DB & GHI DỮ LIỆU (NẰM TRONG TRANSACTION)
+    -- BƯỚC C: TRANSACTION TẠO USER
     ---------------------------------------------------------
-    -- Chỉ bắt đầu Transaction cho các thao tác dữ liệu trong DB hiện tại
-    BEGIN TRANSACTION
-        BEGIN TRY
-            -- 1. Tạo User cho Database hiện tại
-            SET @SQL = 'CREATE USER [' + @LoginName + '] FOR LOGIN [' + @LoginName + ']';
-            EXEC (@SQL);
+    SET @Step = N'BEGIN LOCAL TRANSACTION';
+    BEGIN TRANSACTION;
 
-            -- 2. Gán quyền (Role)
-            -- sp_addrolemember vẫn dùng được, hoặc dùng ALTER ROLE
-            EXEC sp_addrolemember @Role, @LoginName;
+    BEGIN TRY
 
-            -- 3. Ghi vào bảng TaiKhoan (Dữ liệu nghiệp vụ)
-            INSERT INTO TaiKhoan(LoginName) VALUES (@LoginName);
+        SET @Step = N'CREATE USER';
+        SET @SQL = 'CREATE USER [' + @LoginName + '] FOR LOGIN [' + @LoginName + ']';
+        EXEC (@SQL);
 
-            COMMIT TRANSACTION;
-            PRINT N'Tạo tài khoản thành công hoàn toàn.';
-        END TRY
-        BEGIN CATCH
-            -- Nếu lỗi tại bước này
-            ROLLBACK TRANSACTION;
+        SET @Step = N'ASSIGN ROLE';
+        EXEC sp_addrolemember @Role, @LoginName;
 
-            -- CLEANUP (BÙ TRỪ): Xóa Login Local và Remote vì việc tạo User thất bại
-            -- 1. Xóa Login Local
-            SET @SQL = 'DROP LOGIN [' + @LoginName + ']';
-            EXEC (@SQL);
+        SET @Step = N'INSERT TaiKhoan';
+        INSERT INTO TaiKhoan(LoginName) VALUES (@LoginName);
 
-            -- 2. Xóa Login Remote (Gợi ý nên có SP này)
-            -- EXEC [LINK_CTY].CTY.dbo.SP_XoaLogin_Global @LoginName;
+        COMMIT TRANSACTION;
+        PRINT N'Tạo tài khoản hoàn tất thành công.';
 
-            DECLARE @Err NVARCHAR(MAX) = ERROR_MESSAGE();
-            RAISERROR(N'Lỗi khi thiết lập User/Data: %s. Đã hoàn tác toàn bộ.', 16, 1, @Err);
-        END CATCH
+    END TRY
+    BEGIN CATCH
+
+        ROLLBACK TRANSACTION;
+
+        SET @Err = ERROR_MESSAGE();
+
+        ---------------------------------------------------------
+        -- CLEANUP
+        ---------------------------------------------------------
+        SET @Step = N'CLEANUP LOCAL LOGIN';
+        SET @SQL = 'DROP LOGIN [' + @LoginName + ']';
+        EXEC (@SQL);
+
+        -- EXEC [LINK_CTY].CTY.dbo.SP_XoaLogin_Global @LoginName;
+
+        RAISERROR(N'[STEP: %s] Lỗi khi thiết lập User/Data: %s. Đã hoàn tác toàn bộ.',
+            16, 1, @Step, @Err);
+    END CATCH
+
 END
 GO
 
 GRANT EXECUTE ON dbo.SP_TaoTaiKhoan_ChiNhanh TO ChiNhanh_Role;
-DENY EXECUTE ON dbo.SP_TaoTaiKhoan_ChiNhanh TO CongTy_Role;
-DENY EXECUTE ON dbo.SP_TaoTaiKhoan_ChiNhanh TO User_Role;
 GO
