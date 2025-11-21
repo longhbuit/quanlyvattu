@@ -1,0 +1,6 @@
+﻿{
+}
+  "ChiNhanh2": "Server=localhost,14333;Database=CN2;TrustServerCertificate=True;"
+  "ChiNhanh1": "Server=localhost,14332;Database=CN1;TrustServerCertificate=True;",
+  "CongTy": "Server=localhost,14331;Database=CTY;TrustServerCertificate=True;",
+

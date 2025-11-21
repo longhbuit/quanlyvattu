@@ -19,6 +19,7 @@ static class Program
             return; // exit if not logged in
         }
 
-        Application.Run(new Form1());
+        var selected = login.SelectedBranch;
+        Application.Run(new Form1(selected));
     }
 }

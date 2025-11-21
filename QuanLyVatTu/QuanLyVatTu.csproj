@@ -9,7 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
+      <!-- Remove old System.Data.SqlClient, use Microsoft.Data.SqlClient -->
+      <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Include="ConnectionStrings.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>
