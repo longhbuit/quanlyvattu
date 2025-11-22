@@ -87,7 +87,7 @@ namespace QuanLyVatTu
                     cmd.CommandType = CommandType.Text;
                     try
                     {
-                        Console.WriteLine("Executing batch...");
+                        Console.WriteLine(script+"::Executing batch...");
                         cmd.ExecuteNonQuery();
                     }
                     catch (Exception ex)
@@ -131,7 +131,7 @@ namespace QuanLyVatTu
         {
             try
             {
-                var dir = new DirectoryInfo("C:\\Users\\longh\\RiderProjects\\QuanLyVatTu\\QuanLyVatTu");
+                var dir = new DirectoryInfo( FindProjectDir() ?? AppContext.BaseDirectory);
                 while (dir != null)
                 {
                     var candidate = Path.Combine(dir.FullName, ".env");

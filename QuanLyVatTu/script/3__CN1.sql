@@ -1,4 +1,5 @@
 ﻿USE CN1;
+
 -------------------------------------------
 -- SYNC Kho
 -------------------------------------------
@@ -54,6 +55,9 @@ GO
 GRANT EXECUTE ON dbo.SP_Receiver_NhanVien TO PUBLIC
 GO
 
+GRANT EXECUTE ON dbo.SP_Receiver_NhanVien TO [ChiNhanh_Role]
+GO
+
 -------------------------------------------
 -- SYNC Vat Tu
 -------------------------------------------
@@ -85,4 +89,7 @@ END
 GO
 
 GRANT EXECUTE ON dbo.SP_Receiver_Vattu TO PUBLIC
+GO
+
+GRANT EXECUTE ON dbo.SP_Receiver_Vattu TO [ChiNhanh_Role]
 GO

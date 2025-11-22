@@ -55,7 +55,55 @@ GO
 GRANT ALTER ANY USER TO CongTy_Role;
 GRANT ALTER ANY ROLE TO CongTy_Role;
 GRANT ALTER ON ROLE::CongTy_Role TO CongTy_Role;
+
+GRANT ALTER ANY USER TO ChiNhanh_Role;
+GRANT ALTER ANY ROLE TO ChiNhanh_Role;
+GRANT ALTER ON ROLE::ChiNhanh_Role TO ChiNhanh_Role;
 GO
+
+/* =======================================================
+   PHẦN 3: STORED PROCEDURE TẠO TÀI KHOẢN (Logic Chính)
+   ======================================================= */
+IF OBJECT_ID('SP_TaoLogin_Global', 'P') IS NOT NULL
+    DROP PROC SP_TaoLogin_Global
+GO
+
+CREATE PROCEDURE SP_TaoLogin_Global
+    @LoginName SYSNAME,
+    @Role SYSNAME
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiểm tra trùng login
+    IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LoginName)
+        BEGIN
+            DECLARE @sql NVARCHAR(MAX);
+
+            -- Tạo login
+            SET @sql = N'CREATE LOGIN [' + @LoginName + N'] WITH PASSWORD=''Abcd@1234'';';
+            EXEC (@sql);
+        END
+
+    BEGIN TRY
+        DECLARE @sql2 NVARCHAR(MAX);
+
+        -- Tạo user trong database hiện tại
+        SET @sql2 = N'CREATE USER [' + @LoginName + N'] FOR LOGIN [' + @LoginName + N'];';
+        EXEC (@sql2);
+
+        -- Add role
+        SET @sql2 = N'ALTER ROLE [' + @Role + N'] ADD MEMBER [' + @LoginName + N'];';
+        EXEC (@sql2);
+
+        RETURN 0;
+    END TRY
+    BEGIN CATCH
+        RETURN 1;
+    END CATCH
+END
+
+GRANT EXECUTE ON dbo.SP_TaoLogin_Global TO ChiNhanh_Role;
 
 /* =======================================================
    PHẦN 3: STORED PROCEDURE TẠO TÀI KHOẢN (Logic Chính)

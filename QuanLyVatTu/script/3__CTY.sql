@@ -24,12 +24,12 @@ BEGIN
     -- CN1
     IF @MaCN = 'CN1'
         BEGIN
-            EXEC LINK_CN1.QLVT_CN1.dbo.SP_Receiver_NhanVien @MANV, @Ho, @Ten;
+            EXEC LINK_CN1.CN1.dbo.SP_Receiver_NhanVien @MANV, @Ho, @Ten;
         END
 
     IF @MaCN = 'CN2'
         BEGIN
-            EXEC LINK_CN2.QLVT_CN2.dbo.SP_Receiver_NhanVien @MANV, @Ho, @Ten;
+            EXEC LINK_CN2.CN2.dbo.SP_Receiver_NhanVien @MANV, @Ho, @Ten;
         END
     -- CN2
 END
@@ -57,12 +57,12 @@ BEGIN
 
     IF @MaCN = 'CN1'
         BEGIN
-            EXEC LINK_CN1.QLVT_CN1.dbo.SP_Receiver_Kho @MAKHO, @TenKho;
+            EXEC LINK_CN1.CN1.dbo.SP_Receiver_Kho @MAKHO, @TenKho;
         END
 
     IF @MaCN = 'CN2'
         BEGIN
-            EXEC LINK_CN2.QLVT_CN2.dbo.SP_Receiver_Kho @MAKHO, @TenKho;
+            EXEC LINK_CN2.CN2.dbo.SP_Receiver_Kho @MAKHO, @TenKho;
         END
 END
 GO
@@ -88,8 +88,8 @@ BEGIN
 
     IF @MAVT IS NULL RETURN;
 
-    EXEC LINK_CN1.QLVT_CN1.dbo.SP_Receiver_Vattu @MAVT, @TenVT, @DVT;
-    EXEC LINK_CN2.QLVT_CN2.dbo.SP_Receiver_Vattu @MAVT, @TenVT, @DVT;
+    EXEC LINK_CN1.CN1.dbo.SP_Receiver_Vattu @MAVT, @TenVT, @DVT;
+    EXEC LINK_CN2.CN2.dbo.SP_Receiver_Vattu @MAVT, @TenVT, @DVT;
 END
 GO
 
@@ -119,7 +119,7 @@ BEGIN
 END
 GO
 
-GRANT EXECUTE ON dbo.SP_Kho_Upsert TO PUBLIC
+GRANT EXECUTE ON dbo.SP_Kho_Upsert TO ChiNhanh_Role;
 GO
 
 
@@ -159,7 +159,7 @@ BEGIN
 END
 GO
 
-GRANT EXECUTE ON dbo.SP_NhanVien_Upsert TO PUBLIC;
+GRANT EXECUTE ON dbo.SP_NhanVien_Upsert TO ChiNhanh_Role;
 GO
 
 
@@ -191,5 +191,5 @@ BEGIN
 END
 GO
 
-GRANT EXECUTE ON dbo.SP_Vattu_Upsert TO PUBLIC;
+GRANT EXECUTE ON dbo.SP_Vattu_Upsert TO ChiNhanh_Role;
 GO

@@ -178,6 +178,8 @@ BEGIN
     
         BEGIN TRY
             EXEC(@SQL);
+            SET @SQL = N'EXEC LINK_CTY.CTY.dbo.SP_TaoLogin_Global @LoginName=''cn1_'+@LoginName+''', @Role='''+@Role+''';'
+            EXEC(@SQL);
         END TRY
         BEGIN CATCH
             DECLARE @ErrA3 NVARCHAR(MAX) = ERROR_MESSAGE();
