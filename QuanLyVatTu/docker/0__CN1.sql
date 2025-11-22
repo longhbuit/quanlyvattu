@@ -73,8 +73,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
+        DECLARE @SQL NVARCHAR(MAX);
+
         -- Tạo Login nếu chưa có (Đồng bộ pass với Database CN1)
-        IF NOT EXISTS (SELECT name FROM sys.server_principals WHERE name = @LoginName)
+        IF NOT EXISTS (SELECT name FROM sys.server_principals WHERE name = @LoginName) 
             EXEC sp_addlogin @LoginName, @Password, 'CN1';
 
         -- Tạo User và Gán quyền
@@ -163,7 +165,6 @@ BEGIN
         SET @Err = ERROR_MESSAGE();
         RAISERROR(N'[STEP: %s] Lỗi tạo Login tại Chi Nhánh: %s',
             16, 1, @Step, @Err);
-        RETURN;
     END CATCH
 
 
@@ -180,8 +181,16 @@ BEGIN
         EXEC (@SQL);
 
         SET @Step = N'ASSIGN ROLE';
-        EXEC sp_addrolemember @Role, @LoginName;
+        SET @SQL = 'ALTER ROLE [' + @Role + '] ADD MEMBER [' + @LoginName + ']';
+        EXEC (@SQL)
 
+        IF @Role = 'ChiNhanh_Role'
+            BEGIN
+               SET @Step =N'ASSIGN SERVER ROLE';
+               SET @SQL = N'USE master; ALTER SERVER ROLE [srv_CreateLogin] ADD MEMBER [' + @LoginName + N'];';
+               EXEC (@SQL)
+            END
+        
         SET @Step = N'INSERT TaiKhoan';
         INSERT INTO TaiKhoan(LoginName) VALUES (@LoginName);
 

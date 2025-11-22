@@ -107,9 +107,9 @@ public class UserCreationIntegrationTests
         var creationService = new UserCreationService(conn, loggerFactory.CreateLogger<UserCreationService>());
         var newUser = "test_user_" + Guid.NewGuid().ToString("N").Substring(0, 8);
         var newPass = "Abcd@1234";
-
+        
         var scope = branch == BranchSite.CongTy ? "Công Ty" : "Chi Nhánh";
-        var role = branch == BranchSite.CongTy ? "CongTy_Role" : "User_Role";
+        var role = branch == BranchSite.CongTy ? "CongTy_Role" : Env("INTEGRATION_ROLE") ??  "User_Role";
 
         testLogger.LogInformation("Creating user {NewUser} with scope={Scope} role={Role}", newUser, scope, role);
 
