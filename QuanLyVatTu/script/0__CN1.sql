@@ -67,6 +67,7 @@ GO
 GRANT ALTER ANY USER TO ChiNhanh_Role;
 GRANT ALTER ANY ROLE TO ChiNhanh_Role;
 GRANT ALTER ON ROLE::ChiNhanh_Role TO ChiNhanh_Role;
+GRANT CONTROL ON DATABASE::CN1 TO ChiNhanh_Role;
 GO
 
 /* =======================================================

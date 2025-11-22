@@ -64,7 +64,8 @@ public partial class MainForm : Form
         }
     }
 
-    private void quảnLýKhoToolStripMenuItem_Click(object sender, EventArgs e)
+    // Handler called from designer: open WarehouseForm
+    private void QuanLyKhoToolStripMenuItem_Click(object sender, EventArgs e)
     {
         using var dlg = new WarehouseForm();
         dlg.ShowDialog(this);

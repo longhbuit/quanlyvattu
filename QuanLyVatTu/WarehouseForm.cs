@@ -1,4 +1,6 @@
 ﻿using System.Windows.Forms;
+using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace QuanLyVatTu;
 
@@ -22,9 +24,9 @@ public class WarehouseForm : Form
             View = View.Details,
             FullRowSelect = true
         };
-        listView.Columns.Add("Mã kho", 100);
-        listView.Columns.Add("Tên kho", 300);
-        listView.Columns.Add("Địa chỉ", 180);
+        // Hiển thị chỉ 2 cột: MAKHO và TenKho
+        listView.Columns.Add("Mã kho", 120);
+        listView.Columns.Add("Tên kho", 440);
 
         btnAdd = new Button { Text = "Thêm", Left = 10, Width = 80, Top = 300 };
         btnEdit = new Button { Text = "Chỉnh sửa", Left = 100, Width = 80, Top = 300 };
@@ -44,10 +46,38 @@ public class WarehouseForm : Form
 
     private void WarehouseForm_Load(object? sender, System.EventArgs e)
     {
-        // placeholder: load warehouses from DB later
+        // Load warehouses from DB table Kho. Use session connection string if available.
+        string? connStr = AppSession.ConnectionString ?? ConnectionConfig.GetBase(AppSession.Branch);
+        if (string.IsNullOrWhiteSpace(connStr))
+        {
+            MessageBox.Show("Không tìm thấy connection string. Vui lòng đăng nhập trước.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
         listView.Items.Clear();
-        listView.Items.Add(new ListViewItem(new[] { "K01", "Kho chính", "Hà Nội" }));
-        listView.Items.Add(new ListViewItem(new[] { "K02", "Kho chi nhánh 1", "Hải Phòng" }));
+        Cursor = Cursors.WaitCursor;
+        try
+        {
+            using var conn = new SqlConnection(connStr);
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT MAKHO, TenKho FROM Kho";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var ma = reader.IsDBNull(0) ? string.Empty : reader.GetString(0).Trim();
+                var ten = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
+                listView.Items.Add(new ListViewItem(new[] { ma, ten }));
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Không thể load danh sách kho: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            Cursor = Cursors.Default;
+        }
     }
 
     private void BtnAdd_Click(object? sender, System.EventArgs e)
@@ -82,4 +112,3 @@ public class WarehouseForm : Form
         }
     }
 }
-

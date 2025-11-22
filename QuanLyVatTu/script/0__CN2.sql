@@ -62,6 +62,7 @@ GO
 EXEC sp_addrole 'CongTy_Role' -- Quyền: Xem báo cáo, xem toàn công ty
 EXEC sp_addrole 'ChiNhanh_Role' -- Quyền: Toàn quyền tại chi nhánh
 EXEC sp_addrole 'User_Role' -- Quyền: Chỉ cập nhật dữ liệu, không tạo user
+GRANT CONTROL ON DATABASE::CN2 TO ChiNhanh_Role;
 GO
 
 GRANT ALTER ANY USER TO ChiNhanh_Role;

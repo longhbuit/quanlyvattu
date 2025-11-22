@@ -101,7 +101,7 @@ partial class MainForm
         quảnLýKhoToolStripMenuItem.Name = "quảnLýKhoToolStripMenuItem";
         quảnLýKhoToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
         quảnLýKhoToolStripMenuItem.Text = "Quản lý kho";
-        quảnLýKhoToolStripMenuItem.Click += quảnLyKhoToolStripMenuItem_Click;
+        quảnLýKhoToolStripMenuItem.Click += QuanLyKhoToolStripMenuItem_Click;
 
         Controls.Add(menuStrip1);
         MainMenuStrip = menuStrip1;
