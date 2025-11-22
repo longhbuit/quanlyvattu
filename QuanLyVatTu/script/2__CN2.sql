@@ -2,17 +2,17 @@
 GO
 
 -- REPLICA của danh mục (tối thiểu)
-CREATE TABLE NhanVien_REP (
+CREATE TABLE NhanVien (
                               MANV CHAR(10) PRIMARY KEY,
                               HoTen NVARCHAR(60) NOT NULL
 );
 
-CREATE TABLE Kho_REP (
+CREATE TABLE Kho (
                          MAKHO CHAR(4) PRIMARY KEY,
                          TenKho NVARCHAR(50)
 );
 
-CREATE TABLE Vattu_REP (
+CREATE TABLE VatTu (
                            MAVT CHAR(4) PRIMARY KEY,
                            TenVT NVARCHAR(50),
                            DVT NVARCHAR(20)

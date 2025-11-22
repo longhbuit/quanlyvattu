@@ -69,10 +69,4 @@ public partial class MainForm : Form
         using var dlg = new WarehouseForm();
         dlg.ShowDialog(this);
     }
-
-    // ASCII-friendly event handler used by designer to avoid Unicode normalization issues
-    private void quảnLyKhoToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        quảnLýKhoToolStripMenuItem_Click(sender, e);
-    }
 }

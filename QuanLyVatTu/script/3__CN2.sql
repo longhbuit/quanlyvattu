@@ -12,7 +12,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-MERGE dbo.Kho_REP AS T
+MERGE dbo.Kho AS T
     USING (SELECT @MAKHO AS MAKHO, @TenKho AS TenKho) AS S
     ON T.MAKHO = S.MAKHO
     WHEN MATCHED THEN UPDATE SET TenKho = S.TenKho
@@ -40,7 +40,7 @@ BEGIN
 
     DECLARE @HoTen NVARCHAR(60) = @Ho + ' ' + @Ten;
 
-MERGE dbo.NhanVien_REP AS T
+MERGE dbo.NhanVien AS T
     USING (SELECT @MANV AS MANV, @HoTen AS HoTen) AS S
     ON T.MANV = S.MANV
     WHEN MATCHED THEN
@@ -68,7 +68,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-MERGE dbo.Vattu_REP AS T
+MERGE dbo.VatTu AS T
     USING (
     SELECT @MAVT AS MAVT,
     @TenVT AS TenVT,
