@@ -86,11 +86,6 @@ public class LoginForm : Form
 
     private void BtnLogin_Click(object? sender, EventArgs e)
     {
-        var user = _txtUsername.Text.Trim();
-        var pass = _txtPassword.Text;
-        if (string.IsNullOrWhiteSpace(user)) { MessageBox.Show("Nhập SQL User.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-        if (string.IsNullOrEmpty(pass)) { MessageBox.Show("Nhập mật khẩu.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
-
         SelectedBranch = _cboBranch.SelectedIndex switch
         {
             0 => BranchSite.CongTy,
@@ -98,6 +93,19 @@ public class LoginForm : Form
             2 => BranchSite.ChiNhanh2,
             _ => BranchSite.CongTy
         };
+
+        var loginPrefix = SelectedBranch switch
+        {
+            BranchSite.CongTy => "cty_",
+            BranchSite.ChiNhanh1 => "cn1_",
+            BranchSite.ChiNhanh2 => "cn2_",
+            _ => string.Empty
+        };
+        
+        var user = loginPrefix+_txtUsername.Text.Trim();
+        var pass = _txtPassword.Text;
+        if (string.IsNullOrWhiteSpace(user)) { MessageBox.Show("Nhập SQL User.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+        if (string.IsNullOrEmpty(pass)) { MessageBox.Show("Nhập mật khẩu.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
 
         var baseConn = ConnectionConfig.GetBase(SelectedBranch);
         if (string.IsNullOrWhiteSpace(baseConn))

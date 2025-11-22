@@ -66,20 +66,11 @@ public class UserCreationService
             if (scope == "Công Ty")
             {
                 _logger.LogInformation("Creating company-level login and user: {Login}", loginName);
-                // 1. Tạo login toàn cục
-                using (var spGlobal = new SqlCommand("dbo.SP_TaoLogin_Global", conn))
-                {
-                    spGlobal.CommandType = System.Data.CommandType.StoredProcedure;
-                    spGlobal.Parameters.AddWithValue("@LoginName", loginName);
-                    spGlobal.Parameters.AddWithValue("@Password", password);
-                    var rs = spGlobal.ExecuteNonQuery();
-                    _logger.LogInformation("Result::{rs}",rs);
-                }
-                // 2. Tạo user + gán role trong CTY
+
                 using (var spCompany = new SqlCommand("dbo.SP_TaoTaiKhoan_CongTy", conn))
                 {
                     spCompany.CommandType = System.Data.CommandType.StoredProcedure;
-                    spCompany.Parameters.AddWithValue("@LoginName", loginName);
+                    spCompany.Parameters.AddWithValue("@UserName", loginName);
                     spCompany.Parameters.AddWithValue("@Password", password);
                     spCompany.Parameters.AddWithValue("@Role", role);
                     spCompany.ExecuteNonQuery();
@@ -91,7 +82,7 @@ public class UserCreationService
                 using (var spBranch = new SqlCommand("dbo.SP_TaoTaiKhoan_ChiNhanh", conn))
                 {
                     spBranch.CommandType = System.Data.CommandType.StoredProcedure;
-                    spBranch.Parameters.AddWithValue("@LoginName", loginName);
+                    spBranch.Parameters.AddWithValue("@UserName", loginName);
                     spBranch.Parameters.AddWithValue("@Password", password);
                     spBranch.Parameters.AddWithValue("@Role", role);
                     spBranch.ExecuteNonQuery();

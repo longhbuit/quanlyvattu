@@ -20,6 +20,6 @@ static class Program
         }
 
         var selected = login.SelectedBranch;
-        Application.Run(new Form1(selected));
+        Application.Run(new MainForm(selected));
     }
 }

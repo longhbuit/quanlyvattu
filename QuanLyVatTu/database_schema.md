@@ -1,54 +1,145 @@
-﻿# Database Schema
+﻿```mermaid
+---
+config:
+  theme: base
+  look: handDrawn
+  layout: elk
+---
+flowchart TD
+%% --- NODE GỐC: CTY ---
+    subgraph Node_CTY ["🏢 CTY (TRUNG TÂM)"]
+        direction TB
+        CTY_Master[("MASTER DATA<br/>(ChiNhanh, Vattu)")]
+        CTY_Agg[("SYNC DATA<br/>(NhanVien, Kho)")]
+        CTY_Login["👤 Hệ thống Login"]
+    end
 
-This document outlines the database schema and data storage for the QuanLyVatTu application.
+%% --- NHÁNH 1: CN1 ---
+    subgraph Node_CN1 ["🏭 CN1 (CHI NHÁNH 1)"]
+        direction TB
+    %% Data tại CN1
+        subgraph CN1_DB ["Kho Dữ Liệu CN1"]
+            direction LR
+            CN1_Rep[("Replica<br/>(CN, VT)")]
+            CN1_Local[("Local<br/>(NV, Kho)")]
+        end
 
-## Authentication and Authorization
+    %% Nghiệp vụ CN1
+        subgraph CN1_Biz ["Nghiệp Vụ"]
+            direction TB
+            CN1_Trans["Giao Dịch<br/>(DatHang, PhieuNhap, PhieuXuat)"]
+            CN1_Detail["Chi Tiết<br/>(CTDDH, CTPN, CTPX)"]
+        end
 
-The application uses a dual-layer authentication system.
+        CN1_Trans --> CN1_Detail
+    end
 
-### SQL Server Authentication
+%% --- NHÁNH 2: CN2 ---
+    subgraph Node_CN2 ["🏭 CN2 (CHI NHÁNH 2)"]
+        direction TB
+    %% Data tại CN2
+        subgraph CN2_DB ["Kho Dữ Liệu CN2"]
+            direction LR
+            CN2_Rep[("Replica<br/>(CN, VT)")]
+            CN2_Local[("Local<br/>(NV, Kho)")]
+        end
 
-Users are created as SQL Server Logins and mapped to database Users. This is used for the main database connection.
+    %% Nghiệp vụ CN2
+        subgraph CN2_Biz ["Nghiệp Vụ"]
+            direction TB
+            CN2_Trans["Giao Dịch<br/>(DatHang, PhieuNhap, PhieuXuat)"]
+            CN2_Detail["Chi Tiết<br/>(CTDDH, CTPN, CTPX)"]
+        end
 
-#### System Tables Used
+        CN2_Trans --> CN2_Detail
+    end
 
-*   `sys.server_principals`: Used to check for the existence of a login name before creating a new one.
+%% --- CÁC LUỒNG DỮ LIỆU (TRỤC CÂY) ---
 
-### Application-Level Authentication
+%% 1. Replication: Đẩy từ CTY xuống CN
+    CTY_Master ==>|Replication| CN1_Rep
+    CTY_Master ==>|Replication| CN2_Rep
 
-A local `users.json` file is used for application-level user management. This seems to be a separate user system, and it is unclear how it is used in conjunction with the SQL Server logins.
+%% 2. Sync: Đẩy từ CN lên CTY
+    CN1_Local -.->|Đồng bộ về| CTY_Agg
+    CN2_Local -.->|Đồng bộ về| CTY_Agg
 
-**File Location:** `bin/Debug/net10.0-windows/users.json` (relative to the executable)
+%% --- Style màu sắc phân cấp ---
+    classDef ctyStyle fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#0d47a1;
+    classDef cnStyle fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#e65100;
+    classDef dbStyle fill:#ffffff,stroke:#b0bec5,stroke-dasharray: 5 5;
 
-**Structure:**
-```json
-[
-  {
-    "Username": "string",
-    "PasswordHash": "string (SHA256)"
-  }
-]
+    class Node_CTY ctyStyle;
+    class Node_CN1,Node_CN2 cnStyle;
+    class CTY_Master,CTY_Agg,CN1_Rep,CN1_Local,CN2_Rep,CN2_Local dbStyle;
 ```
 
-## Business Tables
+```mermaid
+---
+config:
+  theme: mc
+  look: handDrawn
+  layout: elk
+---
+flowchart TB
+    subgraph Server3 ["Server 3 (Master/Tra cứu)"]
+        S3_Login["Login"]
+        
+        subgraph S3_Data_Ref ["Danh mục gốc"]
+            S3_CN["ChiNhanh (Full)"]
+            S3_VT["Vattu (Full)"]
+        end
+        
+        subgraph S3_Data_Sync ["Dữ liệu Sync từ CN"]
+            S3_NV["NhanVien (All)"]
+            S3_Kho["Kho (All)"]
+        end
+    end
 
-Currently the first business-oriented table being introduced is `Producers` (in each database `CTY`, `CN1`, `CN2`). Additional domain tables (materials, warehouses, orders, etc.) have not yet been defined.
+    subgraph Server1 ["Server 1 (CN 1)"]
+        subgraph S1_Base ["Dữ liệu nền"]
+            S1_CN["ChiNhanh"]
+            S1_VT["Vattu"]
+            S1_NV["NhanVien"]
+            S1_Kho["Kho"]
+        end
+        
+        subgraph S1_Ops ["Giao dịch"]
+            S1_Trans["Giao dịch"]
+            S1_Docs["DatHang/PN/PX"]
+            S1_CT["Chi tiết"]
+            S1_Trans --> S1_Docs --> S1_CT
+        end
+    end
 
-#### Conceptual Stored Procedures
-(All created in each database; scripts are idempotent.)
-- `sp_AddProducer`: Insert a new producer; returns newly generated identity.
-- `sp_GetProducerById`: Fetch a single producer by `@Id`.
-- `sp_GetAllProducers(@OnlyActive BIT = 0)`: List producers; when `@OnlyActive = 1` filters `IsActive = 1`; ordered by `Name`.
-- `sp_UpdateProducer`: Update mutable fields (`Name`, contact info, `IsActive`). Returns affected row count.
-- `sp_DeleteProducer`: Physical delete by `@Id`. (Could be replaced later by soft delete toggling `IsActive`.)
+    subgraph Server2 ["Server 2 (CN 2)"]
+        subgraph S2_Base ["Dữ liệu nền"]
+            S2_CN["ChiNhanh"]
+            S2_VT["Vattu"]
+            S2_NV["NhanVien"]
+            S2_Kho["Kho"]
+        end
 
-#### Deployment Notes
-- Same DDL/CRUD procedures deployed separately to `CTY`, `CN1`, `CN2`.
-- Keep creation scripts idempotent: check existence before create/drop.
-- Optional seed: Insert 1–2 sample rows only if table is empty to aid UI development.
+        subgraph S2_Ops ["Giao dịch"]
+            S2_Trans["Giao dịch"]
+            S2_Docs["DatHang/PN/PX"]
+            S2_CT["Chi tiết"]
+            S2_Trans --> S2_Docs --> S2_CT
+        end
+    end
 
-#### Future Extensions
-- Add unique index on `Name` (per database) if duplicates should be prevented.
-- Add audit fields (`ModifiedAt`, `ModifiedBy`).
-- Consider separating contact details into a `ProducerContacts` table if multiple contacts per producer become necessary.
-- Add search indexes (e.g., nonclustered index on `Name`, `IsActive`).
+    %% Replication Links
+    S3_CN -.-> S1_CN & S2_CN
+    S3_VT -.-> S1_VT & S2_VT
+
+    %% Sync Links
+    S1_NV --> S3_NV
+    S2_NV --> S3_NV
+    S1_Kho --> S3_Kho
+    S2_Kho --> S3_Kho
+
+    %% Styling
+    style Server3 fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style Server1 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style Server2 fill:#fff3e0,stroke:#e65100,stroke-width:2px
+```
