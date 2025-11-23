@@ -38,6 +38,7 @@ partial class MainForm
         đăngXuấtToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         quảnLýToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         quảnLýKhoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+        quảnLýNhanVienToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(800, 450);
         Text = "Form1";
@@ -73,7 +74,8 @@ partial class MainForm
 
         // quản lý menu
         quảnLýToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            quảnLýKhoToolStripMenuItem
+            quảnLýKhoToolStripMenuItem,
+            quảnLýNhanVienToolStripMenuItem
         });
         quảnLýToolStripMenuItem.Name = "quảnLýToolStripMenuItem";
         quảnLýToolStripMenuItem.Size = new System.Drawing.Size(60, 20);
@@ -103,6 +105,16 @@ partial class MainForm
         quảnLýKhoToolStripMenuItem.Text = "Quản lý kho";
         quảnLýKhoToolStripMenuItem.Click += QuanLyKhoToolStripMenuItem_Click;
 
+        // quản lý nhân viên
+        quảnLýNhanVienToolStripMenuItem.Name = "quảnLýNhanVienToolStripMenuItem";
+        quảnLýNhanVienToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+        quảnLýNhanVienToolStripMenuItem.Text = "Quản lý nhân viên";
+        quảnLýNhanVienToolStripMenuItem.Click += (s, e) =>
+        {
+            using var dlg = new EmployeeForm();
+            dlg.ShowDialog(this);
+        };
+
         Controls.Add(menuStrip1);
         MainMenuStrip = menuStrip1;
     }
@@ -117,4 +129,5 @@ partial class MainForm
     private System.Windows.Forms.ToolStripMenuItem đăngXuấtToolStripMenuItem;
     private System.Windows.Forms.ToolStripMenuItem quảnLýToolStripMenuItem;
     private System.Windows.Forms.ToolStripMenuItem quảnLýKhoToolStripMenuItem;
+    private System.Windows.Forms.ToolStripMenuItem quảnLýNhanVienToolStripMenuItem;
 }

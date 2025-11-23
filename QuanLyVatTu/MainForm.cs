@@ -70,4 +70,11 @@ public partial class MainForm : Form
         using var dlg = new WarehouseForm();
         dlg.ShowDialog(this);
     }
+
+    // Handler for new menu item: open EmployeeForm
+    private void QuanLyNhanVienToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        using var dlg = new EmployeeForm();
+        dlg.ShowDialog(this);
+    }
 }
