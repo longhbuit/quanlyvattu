@@ -12,24 +12,24 @@ CREATE TABLE ChiNhanh
 -- Bảng Nhân viên (dùng chung)
 CREATE TABLE NhanVien
 (
-    MANV     CHAR(10) PRIMARY KEY,
-    Ho       NVARCHAR(40),
-    Ten      NVARCHAR(10),
-    DiaChi   NVARCHAR(100),
-    NgaySinh DATE,
-    Luong    MONEY,
-    MACN     CHAR(3) NOT NULL
-        CHECK (MACN IN ('CN1', 'CN2'))
+    MANV      CHAR(10) PRIMARY KEY,
+    Ho        NVARCHAR(40),
+    Ten       NVARCHAR(10),
+    DiaChi    NVARCHAR(100),
+    NgaySinh  DATE,
+    Luong     MONEY,
+    MACN      CHAR(3) NOT NULL CHECK (MACN IN ('CN1', 'CN2')),
+    IsDeleted BIT     NOT NULL DEFAULT 0
 );
 
 -- Bảng Kho (dùng chung)
 CREATE TABLE Kho
 (
-    MAKHO  CHAR(4) PRIMARY KEY,
-    TenKho NVARCHAR(50),
-    DiaChi NVARCHAR(100),
-    MACN   CHAR(3) NOT NULL
-        CHECK (MACN IN ('CN1', 'CN2'))
+    MAKHO     CHAR(4) PRIMARY KEY,
+    TenKho    NVARCHAR(50),
+    DiaChi    NVARCHAR(100),
+    MACN      CHAR(3) NOT NULL CHECK (MACN IN ('CN1', 'CN2')),
+    IsDeleted BIT     NOT NULL DEFAULT 0
 );
 
 -- Bảng Vật tư (dùng chung)
@@ -38,7 +38,8 @@ CREATE TABLE Vattu
     MAVT       CHAR(4) PRIMARY KEY,
     TenVT      NVARCHAR(50) NOT NULL,
     DVT        NVARCHAR(20),
-    SOLUONGTON INT DEFAULT 0
+    SOLUONGTON INT                   DEFAULT 0,
+    IsDeleted  BIT          NOT NULL DEFAULT 0
 );
 
 

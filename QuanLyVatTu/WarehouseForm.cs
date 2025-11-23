@@ -1,6 +1,5 @@
 ﻿using System.Windows.Forms;
-using Microsoft.Data.SqlClient;
-using System.Data;
+using System;
 
 namespace QuanLyVatTu;
 
@@ -57,28 +56,15 @@ public class WarehouseForm : Form
         btnDelete.Enabled = isBranchUser;
         _lblInfo.Text = isBranchUser ? "" : "(Chỉ user Chi Nhánh mới được thêm/chỉnh sửa/xóa)";
 
-        // Load warehouses from DB table Kho. Use session connection string if available.
-        string? connStr = AppSession.ConnectionString ?? ConnectionConfig.GetBase(AppSession.Branch);
-        if (string.IsNullOrWhiteSpace(connStr))
-        {
-            MessageBox.Show("Không tìm thấy connection string. Vui lòng đăng nhập trước.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
-        }
-
+        // Load warehouses via WarehouseService
         listView.Items.Clear();
         Cursor = Cursors.WaitCursor;
         try
         {
-            using var conn = new SqlConnection(connStr);
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT MAKHO, TenKho FROM Kho";
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            var warehouses = WarehouseService.LoadAll();
+            foreach (var w in warehouses)
             {
-                var ma = reader.IsDBNull(0) ? string.Empty : reader.GetString(0).Trim();
-                var ten = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
-                listView.Items.Add(new ListViewItem(new[] { ma, ten }));
+                listView.Items.Add(new ListViewItem(new[] { w.MaKho, w.TenKho }));
             }
 
             // Ensure buttons reflect selection
@@ -202,33 +188,12 @@ public class WarehouseForm : Form
         return form;
     }
 
-    // Upsert via linked server to CTY
+    // Delegate DB operations to WarehouseService
     private bool UpsertWarehouse(string makho, string tenKho, string diachi)
     {
-        string? connStr = AppSession.ConnectionString ?? ConnectionConfig.GetBase(AppSession.Branch);
-        if (string.IsNullOrWhiteSpace(connStr))
-        {
-            MessageBox.Show("Không tìm thấy connection string.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return false;
-        }
-
-        // MaCN based on branch
-        var macn = AppSession.Branch == BranchSite.ChiNhanh1 ? "CN1" : AppSession.Branch == BranchSite.ChiNhanh2 ? "CN2" : "CTY";
-
         try
         {
-            using var conn = new SqlConnection(connStr);
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            // Call stored procedure on central server via linked server LINK_CTY
-            cmd.CommandText = "EXEC LINK_CTY.CTY.dbo.SP_Kho_Upsert @MAKHO, @TenKho, @DiaChi, @MaCN";
-            cmd.Parameters.Add(new SqlParameter("@MAKHO", System.Data.SqlDbType.Char, 4) { Value = makho });
-            cmd.Parameters.Add(new SqlParameter("@TenKho", System.Data.SqlDbType.NVarChar, 50) { Value = tenKho });
-            cmd.Parameters.Add(new SqlParameter("@DiaChi", System.Data.SqlDbType.NVarChar, 100) { Value = (object?)diachi ?? string.Empty });
-            cmd.Parameters.Add(new SqlParameter("@MaCN", System.Data.SqlDbType.Char, 3) { Value = macn });
-            cmd.CommandTimeout = 30;
-            cmd.ExecuteNonQuery();
-            return true;
+            return WarehouseService.UpsertWarehouse(makho, tenKho, diachi);
         }
         catch (Exception ex)
         {
@@ -237,25 +202,11 @@ public class WarehouseForm : Form
         }
     }
 
-    // Delete local warehouse
     private bool DeleteLocalWarehouse(string makho)
     {
-        string? connStr = AppSession.ConnectionString ?? ConnectionConfig.GetBase(AppSession.Branch);
-        if (string.IsNullOrWhiteSpace(connStr))
-        {
-            MessageBox.Show("Không tìm thấy connection string.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return false;
-        }
-
         try
         {
-            using var conn = new SqlConnection(connStr);
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "DELETE FROM Kho WHERE MAKHO = @MAKHO";
-            cmd.Parameters.Add(new SqlParameter("@MAKHO", System.Data.SqlDbType.Char, 4) { Value = makho });
-            var affected = cmd.ExecuteNonQuery();
-            return affected > 0;
+            return WarehouseService.DeleteLocalWarehouse(makho);
         }
         catch (Exception ex)
         {

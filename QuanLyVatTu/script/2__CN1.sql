@@ -4,18 +4,21 @@ GO
 -- REPLICA của danh mục (tối thiểu)
 CREATE TABLE NhanVien (
                               MANV CHAR(10) PRIMARY KEY,
-                              HoTen NVARCHAR(60) NOT NULL
+                              HoTen NVARCHAR(60) NOT NULL,
+                              IsDeleted BIT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE Kho (
                          MAKHO CHAR(4) PRIMARY KEY,
-                         TenKho NVARCHAR(50)
+                         TenKho NVARCHAR(50),
+                         IsDeleted BIT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE VatTu (
                            MAVT CHAR(4) PRIMARY KEY,
                            TenVT NVARCHAR(50),
-                           DVT NVARCHAR(20)
+                           DVT NVARCHAR(20),
+                           IsDeleted BIT NOT NULL DEFAULT 0
 );
 
 -- Đơn đặt hàng
