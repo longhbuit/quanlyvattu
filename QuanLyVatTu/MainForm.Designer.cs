@@ -39,6 +39,7 @@ partial class MainForm
         quảnLýToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         quảnLýKhoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         quảnLýNhanVienToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+        quảnLýVatTuToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(800, 450);
         Text = "Form1";
@@ -75,7 +76,8 @@ partial class MainForm
         // quản lý menu
         quảnLýToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             quảnLýKhoToolStripMenuItem,
-            quảnLýNhanVienToolStripMenuItem
+            quảnLýNhanVienToolStripMenuItem,
+            quảnLýVatTuToolStripMenuItem
         });
         quảnLýToolStripMenuItem.Name = "quảnLýToolStripMenuItem";
         quảnLýToolStripMenuItem.Size = new System.Drawing.Size(60, 20);
@@ -115,6 +117,16 @@ partial class MainForm
             dlg.ShowDialog(this);
         };
 
+        // quản lý vật tư
+        quảnLýVatTuToolStripMenuItem.Name = "quảnLýVatTuToolStripMenuItem";
+        quảnLýVatTuToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+        quảnLýVatTuToolStripMenuItem.Text = "Quản lý vật tư";
+        quảnLýVatTuToolStripMenuItem.Click += (s, e) =>
+        {
+            using var dlg = new VatTuForm();
+            dlg.ShowDialog(this);
+        };
+
         Controls.Add(menuStrip1);
         MainMenuStrip = menuStrip1;
     }
@@ -130,4 +142,5 @@ partial class MainForm
     private System.Windows.Forms.ToolStripMenuItem quảnLýToolStripMenuItem;
     private System.Windows.Forms.ToolStripMenuItem quảnLýKhoToolStripMenuItem;
     private System.Windows.Forms.ToolStripMenuItem quảnLýNhanVienToolStripMenuItem;
+    private System.Windows.Forms.ToolStripMenuItem quảnLýVatTuToolStripMenuItem;
 }

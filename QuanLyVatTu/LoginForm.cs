@@ -26,10 +26,10 @@ public class LoginForm : Form
         Height = 235;
 
         var lblUser = new Label { Text = "SQL User:", Left = 12, Top = 15, Width = 90 };
-        _txtUsername = new TextBox { Left = 110, Top = 12, Width = 220 };
+        _txtUsername = new TextBox { Left = 110, Top = 12, Width = 220, Text = "admin"};
 
         var lblPass = new Label { Text = "Mật khẩu:", Left = 12, Top = 50, Width = 90 };
-        _txtPassword = new TextBox { Left = 110, Top = 47, Width = 220, UseSystemPasswordChar = true };
+        _txtPassword = new TextBox { Left = 110, Top = 47, Width = 220, UseSystemPasswordChar = true, Text = "Abcd@1234"};
 
         var lblBranch = new Label { Text = "Chọn server:", Left = 12, Top = 85, Width = 90 };
         _cboBranch = new ComboBox { Left = 110, Top = 82, Width = 220, DropDownStyle = ComboBoxStyle.DropDownList };

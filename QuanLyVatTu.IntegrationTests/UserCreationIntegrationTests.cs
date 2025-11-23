@@ -13,57 +13,9 @@ public class UserCreationIntegrationTests
     private static string? Env(string name) => Environment.GetEnvironmentVariable(name);
 
     // Load .env file if present. We set env vars only when they're not already defined
-    private static void LoadDotEnv()
-    {
-        try
-        {
-            var path = FindDotEnvPath();
-            if (path is null) return;
-            foreach (var rawLine in File.ReadAllLines(path))
-            {
-                var line = rawLine.Trim();
-                if (string.IsNullOrEmpty(line) || line.StartsWith("#")) continue;
-                // support lines like: export FOO=bar
-                if (line.StartsWith("export ", StringComparison.OrdinalIgnoreCase)) line = line.Substring(7).TrimStart();
-                var idx = line.IndexOf('=');
-                if (idx <= 0) continue;
-                var key = line.Substring(0, idx).Trim();
-                var val = line.Substring(idx + 1).Trim();
-                if ((val.StartsWith("\"") && val.EndsWith("\"")) || (val.StartsWith("'") && val.EndsWith("'")))
-                {
-                    if (val.Length >= 2) val = val.Substring(1, val.Length - 2);
-                }
-                // don't override existing environment variables
-                if (Environment.GetEnvironmentVariable(key) is null)
-                {
-                    Environment.SetEnvironmentVariable(key, val);
-                }
-            }
-        }
-        catch
-        {
-            // best-effort loader: ignore errors
-        }
-    }
+    private static void LoadDotEnv() => TestUtils.LoadDotEnv();
 
-    private static string? FindDotEnvPath()
-    {
-        try
-        {
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null)
-            {
-                var candidate = Path.Combine(dir.FullName, ".env");
-                if (File.Exists(candidate)) return candidate;
-                dir = dir.Parent;
-            }
-        }
-        catch
-        {
-            // ignore
-        }
-        return null;
-    }
+    private static string? FindDotEnvPath() => null; // kept for compatibility if other code calls it
 
     [Fact]
     public void CreateUser_FullFlow_LoginThenCreate()

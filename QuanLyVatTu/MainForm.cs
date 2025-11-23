@@ -77,4 +77,13 @@ public partial class MainForm : Form
         using var dlg = new EmployeeForm();
         dlg.ShowDialog(this);
     }
+
+    // Handler to open Đơn Đặt Hàng form
+    private void DonDatHangToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        using var dlg = new DonDatHangFormSimple();
+        dlg.ShowDialog(this);
+    }
+
+    // Handler for Vật tư menu item was removed; the designer will wire a lambda to open VatTuForm instead.
 }
