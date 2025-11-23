@@ -85,5 +85,12 @@ public partial class MainForm : Form
         dlg.ShowDialog(this);
     }
 
+    // Handler to open Nhập/Xuất kho (reuse WarehouseForm as a placeholder)
+    private void NhapXuatKhoToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        using var dlg = new WarehouseForm();
+        dlg.ShowDialog(this);
+    }
+
     // Handler for Vật tư menu item was removed; the designer will wire a lambda to open VatTuForm instead.
 }

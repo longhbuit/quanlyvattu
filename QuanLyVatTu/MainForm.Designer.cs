@@ -40,6 +40,8 @@ partial class MainForm
         quảnLýKhoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         quảnLýNhanVienToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         quảnLýVatTuToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+        đơnĐặtHàngToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+        nhậpXuấtKhoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(800, 450);
         Text = "Form1";
@@ -77,7 +79,9 @@ partial class MainForm
         quảnLýToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             quảnLýKhoToolStripMenuItem,
             quảnLýNhanVienToolStripMenuItem,
-            quảnLýVatTuToolStripMenuItem
+            quảnLýVatTuToolStripMenuItem,
+            đơnĐặtHàngToolStripMenuItem,
+            nhậpXuấtKhoToolStripMenuItem
         });
         quảnLýToolStripMenuItem.Name = "quảnLýToolStripMenuItem";
         quảnLýToolStripMenuItem.Size = new System.Drawing.Size(60, 20);
@@ -127,6 +131,18 @@ partial class MainForm
             dlg.ShowDialog(this);
         };
 
+        // đơn đặt hàng
+        đơnĐặtHàngToolStripMenuItem.Name = "đơnĐặtHàngToolStripMenuItem";
+        đơnĐặtHàngToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+        đơnĐặtHàngToolStripMenuItem.Text = "Đơn đặt hàng";
+        đơnĐặtHàngToolStripMenuItem.Click += DonDatHangToolStripMenuItem_Click;
+
+        // nhập/xuất kho
+        nhậpXuấtKhoToolStripMenuItem.Name = "nhậpXuấtKhoToolStripMenuItem";
+        nhậpXuấtKhoToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+        nhậpXuấtKhoToolStripMenuItem.Text = "Nhập/Xuất kho";
+        nhậpXuấtKhoToolStripMenuItem.Click += NhapXuatKhoToolStripMenuItem_Click;
+
         Controls.Add(menuStrip1);
         MainMenuStrip = menuStrip1;
     }
@@ -143,4 +159,6 @@ partial class MainForm
     private System.Windows.Forms.ToolStripMenuItem quảnLýKhoToolStripMenuItem;
     private System.Windows.Forms.ToolStripMenuItem quảnLýNhanVienToolStripMenuItem;
     private System.Windows.Forms.ToolStripMenuItem quảnLýVatTuToolStripMenuItem;
+    private System.Windows.Forms.ToolStripMenuItem đơnĐặtHàngToolStripMenuItem;
+    private System.Windows.Forms.ToolStripMenuItem nhậpXuấtKhoToolStripMenuItem;
 }
